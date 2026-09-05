@@ -10,9 +10,8 @@ metadata:
     - url: https://gurujix.com/
       title: Gurujix hub
       icon: web
-  # Uncomment after the GitHub remote exists:
-  # annotations:
-  #   github.com/project-slug: gurujix-tech/service-orders
+  annotations:
+    github.com/project-slug: gurujix-tech/service-orders
 spec:
   type: service
   lifecycle: experimental
