@@ -1,0 +1,20 @@
+# Software Catalog identity for this repository.
+# Docs: https://backstage.io/docs/features/software-catalog/descriptor-format#kind-component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: service-orders
+  title: Orders Service
+  description: Thin order API for the Gurujix Storefront (living-proof e-commerce workload).
+  links:
+    - url: https://gurujix.com/
+      title: Gurujix hub
+      icon: web
+  # Uncomment after the GitHub remote exists:
+  # annotations:
+  #   github.com/project-slug: gurujix-tech/service-orders
+spec:
+  type: service
+  lifecycle: experimental
+  owner: storefront-team
+  system: storefront
