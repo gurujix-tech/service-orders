@@ -17,8 +17,8 @@ env:
   # --- FILL IN after creating the ECR repository (and OIDC role) ---
   # Example full image URI once filled:
   #   123456789012.dkr.ecr.us-east-1.amazonaws.com/service-orders
-  AWS_REGION: REPLACE_ME_AWS_REGION
-  ECR_REPOSITORY: REPLACE_ME_ECR_REPOSITORY
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: service-orders
   # Also required (repo secret): AWS_ROLE_ARN
   # Also required (repo variable): ECR_PUBLISH=true  (keeps publish skipped until ready)
 
