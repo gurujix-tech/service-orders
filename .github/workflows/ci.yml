@@ -32,7 +32,10 @@ jobs:
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
+          # Built-in — do NOT create a repo secret named GITHUB_TOKEN
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Repo secret you created in Settings → Secrets
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
   lint:
     name: lint-format
