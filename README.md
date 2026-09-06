@@ -79,7 +79,7 @@ pytest -q
 
 CI runs on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`:
 
-1. **gitleaks** — secret scan (blocks known secret patterns in git history)
+1. **gitleaks** — secret scan (blocks known secret patterns in git history). Requires repo secret **`GITLEAKS_LICENSE`** (from [gitleaks.io](https://gitleaks.io)); the workflow must pass it as `GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}`. Do **not** create a secret named `GITHUB_TOKEN` (built-in; names cannot start with `GITHUB_`).
 2. **ruff** — lint + format check
 3. **pip-audit** — known vulnerabilities in Python deps
 4. **pytest**
