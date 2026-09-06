@@ -79,10 +79,14 @@ pytest -q
 
 CI runs on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`:
 
-1. `ruff check` + `ruff format --check`
-2. `pytest`
-3. `docker build` + smoke `/health`
-4. **ECR publish** (main only) — skipped until you fill `AWS_REGION` / `ECR_REPOSITORY` in the workflow, set secret `AWS_ROLE_ARN`, and repo variable `ECR_PUBLISH=true`
+1. **gitleaks** — secret scan (blocks known secret patterns in git history)
+2. **ruff** — lint + format check
+3. **pip-audit** — known vulnerabilities in Python deps
+4. **pytest**
+5. **docker build** + smoke `/health`
+6. **ECR publish** (main only) — needs secret `AWS_ROLE_ARN` and variable `ECR_PUBLISH=true`
+
+Dependabot (`.github/dependabot.yml`) opens weekly PRs for pip and Actions updates.
 
 ## Docker
 
