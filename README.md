@@ -64,6 +64,8 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
+CI runs the same tests on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`.
+
 ## Docker
 
 Requires Docker Desktop (or another Docker engine) running.
