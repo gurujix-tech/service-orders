@@ -6,7 +6,7 @@ Run from the service-orders directory with the venv active:
 
 from fastapi.testclient import TestClient
 
-from app.main import app, _orders
+from app.main import _orders, app
 
 client = TestClient(app)
 

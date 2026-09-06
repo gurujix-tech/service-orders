@@ -56,6 +56,19 @@ curl -s http://127.0.0.1:8080/orders/<order-id>
 
 Interactive API docs: `http://127.0.0.1:8080/docs`
 
+## Lint and format
+
+Uses [Ruff](https://docs.astral.sh/ruff/) (config in `pyproject.toml`):
+
+```sh
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+ruff check .
+ruff format --check .
+# to apply formatting:
+ruff format .
+```
+
 ## Tests
 
 ```sh
@@ -66,8 +79,10 @@ pytest -q
 
 CI runs on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`:
 
-1. `pytest`
-2. `docker build` + smoke `/health` (only if tests pass)
+1. `ruff check` + `ruff format --check`
+2. `pytest`
+3. `docker build` + smoke `/health`
+4. **ECR publish** (main only) — skipped until you fill `AWS_REGION` / `ECR_REPOSITORY` in the workflow, set secret `AWS_ROLE_ARN`, and repo variable `ECR_PUBLISH=true`
 
 ## Docker
 
