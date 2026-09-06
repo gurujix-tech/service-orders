@@ -64,7 +64,10 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-CI runs the same tests on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`.
+CI runs on GitHub Actions (`.github/workflows/ci.yml`) for pull requests and pushes to `main`:
+
+1. `pytest`
+2. `docker build` + smoke `/health` (only if tests pass)
 
 ## Docker
 
