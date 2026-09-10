@@ -106,6 +106,50 @@ curl http://127.0.0.1:8080/ready
 
 Stop the container with Ctrl+C in the `docker run` terminal.
 
+## Run on kind (Phase 5a / 5c)
+
+Prerequisites: Docker Desktop, `kind`, `kubectl`, `helm`. Cluster name: `gurujix`.
+
+```sh
+kubectl config use-context kind-gurujix   # not your EKS context
+
+docker build -t service-orders:local .
+kind load docker-image service-orders:local --name gurujix
+```
+
+**Helm (preferred — Phase 5c):**
+
+```sh
+# if you previously applied plain manifests, remove them once so Helm owns the objects
+kubectl delete -f deploy/k8s/deployment.yaml --ignore-not-found
+
+helm upgrade --install service-orders ./deploy/helm/service-orders
+kubectl rollout status deployment/service-orders
+kubectl port-forward svc/service-orders 8080:80
+```
+
+**Plain manifests (Phase 5a learning):**
+
+```sh
+kubectl apply -f deploy/k8s/deployment.yaml
+kubectl rollout status deployment/service-orders
+kubectl port-forward svc/service-orders 8080:80
+```
+
+In another terminal:
+
+```sh
+curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:8080/ready
+```
+
+Override examples:
+
+```sh
+helm upgrade --install service-orders ./deploy/helm/service-orders --set replicaCount=2
+helm template service-orders ./deploy/helm/service-orders   # render YAML without applying
+```
+
 ## Software Catalog
 
 `catalog-info.yaml` describes this service for Backstage:

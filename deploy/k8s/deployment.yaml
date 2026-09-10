@@ -1,0 +1,72 @@
+# Phase 5a — plain manifests (learning baseline). Prefer Helm for day-to-day (see deploy/helm/).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-orders
+  labels:
+    app.kubernetes.io/name: service-orders
+    app.kubernetes.io/part-of: storefront
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: service-orders
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: service-orders
+    spec:
+      containers:
+        - name: service-orders
+          image: service-orders:local
+          # Image was loaded with `kind load` — do not try to pull from a registry.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-orders
+  labels:
+    app.kubernetes.io/name: service-orders
+spec:
+  selector:
+    app.kubernetes.io/name: service-orders
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

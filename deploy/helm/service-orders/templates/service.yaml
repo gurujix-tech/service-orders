@@ -1,0 +1,14 @@
+# Selector labels must match Deployment Pod labels — both use the same helper.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "service-orders.fullname" . }}
+  labels:
+    {{- include "service-orders.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "service-orders.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
