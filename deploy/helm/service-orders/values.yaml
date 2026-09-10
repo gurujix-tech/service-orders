@@ -3,7 +3,7 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 3
+replicaCount: 1
 
 image:
   repository: service-orders
