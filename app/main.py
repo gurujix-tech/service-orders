@@ -163,7 +163,7 @@ def ready() -> dict[str, str]:
 
 
 @app.post("/orders", status_code=201)
-def create_order(payload: OrderCreate) -> Order:
+def create_order(payload: OrderCreate, request: Request) -> Order:
     """Create a storefront order (in-memory)."""
     order = Order(
         id=str(uuid4()),
@@ -172,7 +172,17 @@ def create_order(payload: OrderCreate) -> Order:
         customer_email=payload.customer_email,
     )
     _orders[order.id] = order
-    ORDERS_CREATED.inc()  # step 2: record the business event
+    ORDERS_CREATED.inc()  # Phase 6a: business metric
+
+    # Phase 6d step 3: business log shares request_id with middleware lines.
+    logger.info(
+        "order_created",
+        extra={
+            "event": "order_created",
+            "request_id": getattr(request.state, "request_id", None),
+            "order_id": order.id,
+        },
+    )
     return order
 
 

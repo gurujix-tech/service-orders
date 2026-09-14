@@ -10,8 +10,11 @@ Thin FastAPI order API for the **Gurujix Storefront** — a living-proof e-comme
 
 - `GET /health` — liveness (process up)
 - `GET /ready` — readiness (safe to receive traffic)
+- `GET /metrics` — Prometheus exposition (Phase 6a)
 - `POST /orders` — create an order (in-memory)
 - `GET /orders/{order_id}` — fetch an order
+
+Structured JSON logs on stdout with `X-Request-ID` correlation (Phase 6d). Probes/metrics paths are not request-logged.
 
 No database yet. Restarting the process clears orders.
 
