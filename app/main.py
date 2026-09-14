@@ -9,11 +9,18 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
+from app.logging_config import configure_logging
+
+# --- Phase 6d step 1: JSON logs to stdout ---
+logger = configure_logging()
+
 app = FastAPI(
     title="Gurujix Orders Service",
     description="Thin order API for the Gurujix Storefront (platform reference workload).",
     version="0.1.0",
 )
+
+logger.info("service_starting", extra={"event": "service_starting"})
 
 # In-memory store only (no database in this step).
 # Data is lost on process restart — intentional for Phase 2 thin slice.
@@ -48,6 +55,47 @@ def _handler_label(request: Request) -> str:
     route = request.scope.get("route")
     path = getattr(route, "path", None)
     return path if isinstance(path, str) else request.url.path
+
+
+# Skip request logs for scrape + probes (otherwise kubelet floods stdout).
+_REQUEST_LOG_SKIP = frozenset({"/metrics", "/health", "/ready"})
+
+
+# --- Phase 6d step 2: one request_id per call (correlate log lines) ---
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Assign request_id, log start/finish, echo id on the response."""
+    if request.url.path in _REQUEST_LOG_SKIP:
+        return await call_next(request)
+
+    # Client may send X-Request-ID (gateways often do); otherwise we create one.
+    request_id = request.headers.get("x-request-id") or str(uuid4())
+    request.state.request_id = request_id
+
+    logger.info(
+        "request_started",
+        extra={
+            "event": "request_started",
+            "request_id": request_id,
+            "method": request.method,
+            "handler": request.url.path,
+        },
+    )
+
+    response = await call_next(request)
+
+    logger.info(
+        "request_finished",
+        extra={
+            "event": "request_finished",
+            "request_id": request_id,
+            "method": request.method,
+            "handler": _handler_label(request),
+            "status": response.status_code,
+        },
+    )
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.middleware("http")
