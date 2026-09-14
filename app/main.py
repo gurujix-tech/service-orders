@@ -2,9 +2,11 @@
 #
 # Living-proof e-commerce workload for the platform.
 # Content/blogs stay on gurujix.com; this API is the running system.
+from time import perf_counter
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -16,6 +18,65 @@ app = FastAPI(
 # In-memory store only (no database in this step).
 # Data is lost on process restart — intentional for Phase 2 thin slice.
 _orders: dict[str, "Order"] = {}
+
+# --- Phase 6a step 2: one business metric (you control when it increases) ---
+# Counter = number that only goes up (resets when the process restarts).
+ORDERS_CREATED = Counter(
+    "orders_created_total",
+    "Number of storefront orders successfully created",
+)
+
+# --- Phase 6a step 3+5: count every HTTP request (RED rate/errors) ---
+# Label "handler" = route template (/orders/{order_id}), NOT raw URL with ids.
+HTTP_REQUESTS = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "handler", "status"],
+)
+
+# --- Phase 6a step 4: how long each request took (RED "duration") ---
+# Histogram records observations into buckets (not a single average).
+HTTP_REQUEST_DURATION = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latency in seconds",
+    ["method", "handler"],
+)
+
+
+def _handler_label(request: Request) -> str:
+    """Prefer route template over raw path (avoids one series per order id)."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    return path if isinstance(path, str) else request.url.path
+
+
+@app.middleware("http")
+async def http_requests_middleware(request: Request, call_next):
+    """Wrap each request: measure duration, then count the request."""
+    # Don't count scrapes of /metrics as application traffic.
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start = perf_counter()
+    response = await call_next(request)
+    elapsed = perf_counter() - start
+
+    # After call_next, the matched route is available → use template label.
+    handler = _handler_label(request)
+    HTTP_REQUEST_DURATION.labels(request.method, handler).observe(elapsed)
+    HTTP_REQUESTS.labels(
+        request.method,
+        handler,
+        str(response.status_code),
+    ).inc()
+    return response
+
+
+# --- Phase 6a step 1: scrape endpoint only ---
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    """Expose Prometheus text so a scraper (or curl) can read process metrics."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 class OrderCreate(BaseModel):
@@ -63,6 +124,7 @@ def create_order(payload: OrderCreate) -> Order:
         customer_email=payload.customer_email,
     )
     _orders[order.id] = order
+    ORDERS_CREATED.inc()  # step 2: record the business event
     return order
 
 
