@@ -114,6 +114,16 @@ jobs:
       - name: Build image
         run: docker build -t service-orders:ci .
 
+      # Phase 7a: fail the pipeline if the built image has HIGH/CRITICAL CVEs.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: service-orders:ci
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
       - name: Smoke /health
         run: |
           docker run -d --name service-orders-ci -p 8080:8080 service-orders:ci
