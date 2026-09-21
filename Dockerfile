@@ -6,7 +6,9 @@ WORKDIR /app
 
 # Install dependencies first (better layer caching when only app code changes)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip tooling first so the image does not keep vulnerable setuptools from the base.
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Application code
 COPY app ./app
