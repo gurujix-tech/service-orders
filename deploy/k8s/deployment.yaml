@@ -16,6 +16,13 @@ spec:
       labels:
         app.kubernetes.io/name: service-orders
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: service-orders
           image: service-orders:local

@@ -153,6 +153,20 @@ helm upgrade --install service-orders ./deploy/helm/service-orders --set replica
 helm template service-orders ./deploy/helm/service-orders   # render YAML without applying
 ```
 
+### Workload security baseline (Phase 7c)
+
+Defaults in `deploy/helm/service-orders/values.yaml` (also mirrored in plain manifests):
+
+| Control | Setting |
+| --- | --- |
+| Non-root | `runAsUser` / `runAsGroup` **10001** (matches Dockerfile `USER`) |
+| Read-only root FS | `readOnlyRootFilesystem: true` + `/tmp` emptyDir |
+| No privilege escalation | `allowPrivilegeEscalation: false` |
+| Capabilities | `drop: ["ALL"]` |
+| Seccomp | `RuntimeDefault` on the Pod |
+
+Override only with a documented, time-bound exception. Phase 7d will enforce this with policy-as-code.
+
 ## Software Catalog
 
 `catalog-info.yaml` describes this service for Backstage:
