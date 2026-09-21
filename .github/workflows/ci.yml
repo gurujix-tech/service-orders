@@ -114,14 +114,16 @@ jobs:
       - name: Build image
         run: docker build -t service-orders:ci .
 
-      # Phase 7a: fail the pipeline if the built image has HIGH/CRITICAL CVEs.
-      - name: Trivy image scan
+      # Phase 7a: OS packages in the image (base layer). Python deps are covered by
+      # pip-audit — avoid per-service pins of transitive/base tooling (setuptools, etc.).
+      - name: Trivy image scan (OS)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: service-orders:ci
           format: table
           exit-code: "1"
           severity: CRITICAL,HIGH
+          vuln-type: os
           ignore-unfixed: true
 
       - name: Smoke /health
