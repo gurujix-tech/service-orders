@@ -126,6 +126,21 @@ jobs:
           vuln-type: os
           ignore-unfixed: true
 
+      # Phase 7 wind-up: SBOM for the built image (artifact only — does not fail the job).
+      - name: Trivy SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: service-orders:ci
+          format: cyclonedx
+          output: service-orders-sbom.cdx.json
+          exit-code: "0"
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-orders-sbom
+          path: service-orders-sbom.cdx.json
+
       - name: Smoke /health
         run: |
           docker run -d --name service-orders-ci -p 8080:8080 service-orders:ci
