@@ -136,7 +136,7 @@ jobs:
           exit-code: "0"
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: service-orders-sbom
           path: service-orders-sbom.cdx.json
