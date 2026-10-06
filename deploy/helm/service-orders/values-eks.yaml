@@ -1,24 +1,28 @@
-# Default values for local kind. Override per env later (GitOps values files).
-# Optional renames used by _helpers.tpl (leave empty to use chart name).
+# Complete values for EKS — use alone:
+#   helm upgrade --install service-orders deploy/helm/service-orders \
+#     -n default -f deploy/helm/service-orders/values-eks.yaml
+#
+# kind still uses values.yaml only (ingress off, local image).
+
 nameOverride: ""
 fullnameOverride: ""
 
 replicaCount: 1
 
 image:
-  repository: service-orders
-  tag: local
-  # IfNotPresent: use image loaded via `kind load` (no registry pull).
-  pullPolicy: IfNotPresent
+  repository: 577572726499.dkr.ecr.us-east-1.amazonaws.com/service-orders
+  # Set at deploy time: --set image.tag=<git-sha>
+  tag: "699fdccfa35033b9db2a9584add62ec75b200283"
+  pullPolicy: Always
 
 service:
   port: 80
   targetPort: 8080
 
 ingress:
-  enabled: false
+  enabled: true
   host: app.gurujix.com
-  certificateArn: ""
+  certificateArn: "arn:aws:acm:us-east-1:577572726499:certificate/90a28272-3319-422e-9985-b4b40eab5c62"
   healthcheckPath: /health
 
 resources:
@@ -39,8 +43,6 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 10
 
-# Phase 7c — workload security baseline (matches Dockerfile USER 10001).
-# Keep these defaults for every service; override only with a documented exception.
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 10001
