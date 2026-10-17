@@ -11,7 +11,7 @@ replicaCount: 1
 
 image:
   repository: 577572726499.dkr.ecr.us-east-1.amazonaws.com/service-orders
-  # Set at deploy time: --set image.tag=<git-sha>
+  # Overridden by application-manifests/service-orders/dev/values.yaml (CI promote).
   tag: "63862009c822be3ff1bf5b1d9865648d8c8366e1"
   pullPolicy: Always
 
