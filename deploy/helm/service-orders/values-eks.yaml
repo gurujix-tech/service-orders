@@ -11,8 +11,8 @@ replicaCount: 1
 
 image:
   repository: 577572726499.dkr.ecr.us-east-1.amazonaws.com/service-orders
-  # Overridden by application-manifests/service-orders/dev/values.yaml (CI promote).
-  tag: "63862009c822be3ff1bf5b1d9865648d8c8366e1"
+  # Overridden by application-manifests (semver pin after first v* release). Fallback only if values source missing.
+  tag: "8e9da30881d8010190c300445ec88091cf98e24f"
   pullPolicy: Always
 
 service:
