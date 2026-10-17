@@ -22,7 +22,7 @@ service:
 ingress:
   enabled: true
   host: app.gurujix.com
-  certificateArn: "arn:aws:acm:us-east-1:577572726499:certificate/90a28272-3319-422e-9985-b4b40eab5c62"
+  certificateArn: "arn:aws:acm:us-east-1:577572726499:certificate/748464e0-ad6d-4780-b953-7774edb962f3"
   healthcheckPath: /health
 
 resources:
