@@ -1,0 +1,148 @@
+# Promote an already-built semver into a higher env (qa → later uat/prod).
+# Gate: you must run this workflow (Actions → Promote → Run workflow). No rebuild.
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      semver:
+        description: "Semver already in ECR (e.g. v0.1.3). Leave empty to copy whatever is pinned in dev."
+        required: false
+        type: string
+      target_env:
+        description: "Target environment folder under application-manifests/service-orders/"
+        required: true
+        type: choice
+        options:
+          - qa
+          # - uat
+          # - prod
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: promote-to-${{ inputs.target_env }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.APPLICATION_MANIFESTS_TOKEN }}
+      TARGET_ENV: ${{ inputs.target_env }}
+      INPUT_SEMVER: ${{ inputs.semver }}
+      ECR_IMAGE: 577572726499.dkr.ecr.us-east-1.amazonaws.com/service-orders
+    steps:
+      - name: Checkout application-manifests
+        uses: actions/checkout@v4
+        with:
+          repository: gurujix-tech/application-manifests
+          token: ${{ secrets.APPLICATION_MANIFESTS_TOKEN }}
+          path: application-manifests
+
+      - name: Resolve version, open PR, merge
+        working-directory: application-manifests
+        run: |
+          set -euo pipefail
+
+          DEV_PATH="service-orders/dev/values.yaml"
+          MANIFEST_PATH="service-orders/${TARGET_ENV}/values.yaml"
+
+          if [[ ! -f "${MANIFEST_PATH}" ]]; then
+            echo "Missing ${MANIFEST_PATH} — add the env folder before promoting."
+            exit 1
+          fi
+
+          if [[ -n "${INPUT_SEMVER}" ]]; then
+            IMAGE_TAG="${INPUT_SEMVER}"
+          else
+            python3 <<'PY' > /tmp/dev-tag.txt
+          import re
+          text = open("service-orders/dev/values.yaml").read()
+          m = re.search(r'^\s*tag:\s*["\']?([^"\'\n]+)', text, re.M)
+          if not m:
+              raise SystemExit("could not read image.tag from dev/values.yaml")
+          print(m.group(1))
+          PY
+            IMAGE_TAG="$(cat /tmp/dev-tag.txt)"
+          fi
+
+          if [[ ! "${IMAGE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ ]] && \
+             [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{7,}$ ]]; then
+            echo "Refusing unexpected tag format: ${IMAGE_TAG}"
+            exit 1
+          fi
+
+          export IMAGE_TAG MANIFEST_PATH
+          echo "Promoting ${IMAGE_TAG} → ${MANIFEST_PATH}"
+
+          python3 <<'PY'
+          import os, re
+          path = os.environ["MANIFEST_PATH"]
+          tag = os.environ["IMAGE_TAG"]
+          text = open(path).read()
+          new, n = re.subn(
+              r'^(\s*tag:\s*)(["\']?)([^"\'\n]+)(["\']?)\s*$',
+              rf'\1"{tag}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if n != 1:
+              raise SystemExit(f"expected to replace image.tag once, got {n}")
+          open(path, "w").write(new)
+          print(f"Set {path} image.tag to {tag}")
+          PY
+
+          BRANCH="promote/service-orders-${TARGET_ENV}-${IMAGE_TAG}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "${BRANCH}"
+          git add "${MANIFEST_PATH}"
+          if git diff --staged --quiet; then
+            echo "image.tag already at ${IMAGE_TAG}; nothing to promote"
+            exit 0
+          fi
+          git commit -m "chore(release): promote service-orders ${IMAGE_TAG} to ${TARGET_ENV}"
+          git push -u origin "${BRANCH}" --force
+
+          export SOURCE_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          export TARGET_ENV ECR_IMAGE
+          python3 <<'PY'
+          import os, textwrap
+          from pathlib import Path
+          e = os.environ
+          body = textwrap.dedent(f"""\
+          ## Summary
+
+          **Gated promote** (workflow_dispatch) — no rebuild. Same artifact as already in ECR / typically in `dev`.
+
+          | | |
+          | --- | --- |
+          | **Service** | `service-orders` |
+          | **Target env** | `{e["TARGET_ENV"]}` |
+          | **Version** | `{e["IMAGE_TAG"]}` |
+          | **Image** | `{e["ECR_IMAGE"]}:{e["IMAGE_TAG"]}` |
+          | **Manifest** | `{e["MANIFEST_PATH"]}` |
+          | **Source workflow** | [Promote run]({e["SOURCE_RUN_URL"]}) |
+
+          ## Gate
+
+          Running this workflow *is* the approval to move the pin into `{e["TARGET_ENV"]}`.
+          Higher envs (uat/prod) can later drop auto-merge and require a human PR review.
+
+          ## Rollback
+
+          Re-run Promote with the previous semver, or revert this PR.
+          """)
+          Path("/tmp/pr-body.md").write_text(body)
+          PY
+
+          PR_URL=$(gh pr create \
+            --repo gurujix-tech/application-manifests \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore(release): promote service-orders ${IMAGE_TAG} to ${TARGET_ENV}" \
+            --body-file /tmp/pr-body.md)
+
+          echo "Opened ${PR_URL}"
+          gh pr merge "${PR_URL}" --repo gurujix-tech/application-manifests --squash --delete-branch
+          echo "Merged ${PR_URL}"
