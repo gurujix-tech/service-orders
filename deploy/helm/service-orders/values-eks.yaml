@@ -12,7 +12,7 @@ replicaCount: 1
 image:
   repository: 577572726499.dkr.ecr.us-east-1.amazonaws.com/service-orders
   # Set at deploy time: --set image.tag=<git-sha>
-  tag: "699fdccfa35033b9db2a9584add62ec75b200283"
+  tag: "63862009c822be3ff1bf5b1d9865648d8c8366e1"
   pullPolicy: Always
 
 service:
